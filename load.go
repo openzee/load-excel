@@ -54,22 +54,22 @@ func (obj Point) String() string {
 }
 
 // 将相同地址和频率的点位重新组装
-func ReassembleWithAddrAndFreq(pt []Point) map[string]map[time.Duration][]Point {
+func ReassembleWithAddrAndFreq(pt []*Point) map[string]map[time.Duration][]*Point {
 
-	mapWithDataAddr := make(map[string]map[time.Duration][]Point)
+	mapWithDataAddr := make(map[string]map[time.Duration][]*Point)
 	count := 0
 
 	for _, p := range pt {
 
 		mapWithFreq, ok := mapWithDataAddr[p.DataSourceAddr]
 		if !ok {
-			mapWithFreq = make(map[time.Duration][]Point)
+			mapWithFreq = make(map[time.Duration][]*Point)
 			mapWithDataAddr[p.DataSourceAddr] = mapWithFreq
 		}
 
 		pts, ok := mapWithFreq[p.Frequency]
 		if !ok {
-			pts = make([]Point, 0)
+			pts = make([]*Point, 0)
 			mapWithFreq[p.Frequency] = pts
 		}
 
@@ -85,13 +85,13 @@ func ReassembleWithAddrAndFreq(pt []Point) map[string]map[time.Duration][]Point 
 	return mapWithDataAddr
 }
 
-func ParseExcel(fname string, onlySheets ...string) ([]Point, error) {
+func ParseExcel(fname string, onlySheets ...string) ([]*Point, error) {
 	f, err := excelize.OpenFile(fname)
 	if err != nil {
 		return nil, fmt.Errorf("open file %v fails, err:%v", fname, err)
 	}
 
-	var allPoints []Point
+	allPoints := []*Point{}
 
 	sheetList := f.GetSheetList()
 
@@ -207,7 +207,7 @@ func ParseExcel(fname string, onlySheets ...string) ([]Point, error) {
 				continue
 			}
 
-			allPoints = append(allPoints, p)
+			allPoints = append(allPoints, &p)
 		}
 	}
 

@@ -5,10 +5,10 @@ import (
 	"testing"
 )
 
-func Print(allPoints []Point) {
+func Print(allPoints []*Point) {
 
 	for _, p := range allPoints {
-		fmt.Println(p)
+		fmt.Println(*p)
 	}
 }
 
