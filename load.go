@@ -53,6 +53,38 @@ func (obj Point) String() string {
 	)
 }
 
+// 将相同地址和频率的点位重新组装
+func ReassembleWithAddrAndFreq(pt []Point) map[string]map[time.Duration][]Point {
+
+	mapWithDataAddr := make(map[string]map[time.Duration][]Point)
+	count := 0
+
+	for _, p := range pt {
+
+		mapWithFreq, ok := mapWithDataAddr[p.DataSourceAddr]
+		if !ok {
+			mapWithFreq = make(map[time.Duration][]Point)
+			mapWithDataAddr[p.DataSourceAddr] = mapWithFreq
+		}
+
+		pts, ok := mapWithFreq[p.Frequency]
+		if !ok {
+			pts = make([]Point, 0)
+			mapWithFreq[p.Frequency] = pts
+		}
+
+		pts = append(pts, p)
+		count = count + 1
+		mapWithFreq[p.Frequency] = pts //pts可能已经被更新，需要回写到map中
+	}
+
+	if count != len(pt) {
+		log.Fatalf("点位重组后，长度缺失")
+	}
+
+	return mapWithDataAddr
+}
+
 func ParseExcel(fname string, onlySheets ...string) ([]Point, error) {
 	f, err := excelize.OpenFile(fname)
 	if err != nil {
