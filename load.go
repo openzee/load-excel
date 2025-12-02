@@ -25,36 +25,72 @@ type Point struct {
 	Precision    string `excel:"精度"`
 	Range        string `excel:"取值范围"`
 
-	Frequency      time.Duration `excel:"采集频率"` // 自动解析 + 默认补 ms
-	Unit           string        `excel:"数据单位"`
-	DataSourceAddr string        `excel:"数据源地址"`
-	IOAddr         string        `excel:"IO地址"`
-	DeviceCode     string        `excel:"设备编号"`
-	DeviceSubCode  string        `excel:"设备附属编号"`
-	PointCode      uint64        `excel:"点位编号"`
-	PointExtraCode string        `excel:"点位额外编号"`
-	GroupID        string        `excel:"分组编号"`
-	NeedStore      string        `excel:"是否存储"`
-	NeedPublish    string        `excel:"是否推送"`
-	CalcType       string        `excel:"计算类型"`
-	PublishTopic   string        `excel:"推送主题"`
+	Frequency       time.Duration `excel:"采集频率"` // 自动解析 + 默认补 ms
+	Unit            string        `excel:"数据单位"`
+	DataSourceAddr  string        `excel:"数据源地址"`
+	IOAddr          string        `excel:"IO地址"`
+	DeviceCode      string        `excel:"设备编号"`
+	DeviceSubCode   string        `excel:"设备附属编号"`
+	PointPrimaryKey uint64        `excel:"点位编号"`
+	PointExtraCode  string        `excel:"点位额外编号"`
+	GroupID         string        `excel:"分组编号"`
+	NeedStore       string        `excel:"是否存储"`
+	//NeedPublish    string        `excel:"是否推送"`
+	//CalcType       string        `excel:"计算类型"`
+	//PublishTopic   string        `excel:"推送主题"`
 
 	SheetName string `excel:"-"`
 	RowNumber int    `excel:"-"`
 }
 
-func Load() {
-	f, err := excelize.OpenFile("/Users/xiezg/Downloads/采集点位(34).xlsx" )
+func (obj Point) String() string {
+	return fmt.Sprintf("SheetName:%v RowNumber:%v 点位编号:%v 数据源地址:%v IO地址:%v", 
+		obj.SheetName,
+		obj.RowNumber,
+		obj.PointPrimaryKey,
+		obj.DataSourceAddr,
+		obj.IOAddr,
+	)
+}
+
+func ParseExcel(fname string, onlySheets ...string) ([]Point, error) {
+	f, err := excelize.OpenFile(fname)
 	if err != nil {
-		log.Fatal("打开文件失败:", err)
+		return nil, fmt.Errorf("open file %v fails, err:%v", fname, err)
 	}
 
 	var allPoints []Point
 
-	for _, sheetName := range f.GetSheetList() {
-		fmt.Printf("\n=== 正在解析 Sheet: %s ===\n", sheetName)
+	sheetList := f.GetSheetList()
+
+	// 如果指定了 OnlySheets，则过滤
+	if len(onlySheets) > 0 {
+		nameMap := make(map[string]bool)
+		for _, name := range onlySheets {
+			nameMap[strings.TrimSpace(name)] = true
+		}
+
+		filtered := []string{}
+		for _, name := range sheetList {
+
+			//如果nameMap中没有，返回的值是false
+			if nameMap[name] || nameMap[strings.TrimSpace(name)] {
+				filtered = append(filtered, name)
+			}
+		}
+		sheetList = filtered
+
+		if len(sheetList) == 0 {
+			return nil, fmt.Errorf("未找到指定的 Sheet: %v", onlySheets)
+		}
+	}
+
+	// 遍历要解析的 Sheet
+	for _, sheetName := range sheetList {
+		log.Debugf("\n=== 正在解析 Sheet: %s ===\n", sheetName)
 		rows, err := f.GetRows(sheetName)
 		if err != nil || len(rows) < 2 {
+			log.Errorf("sheet:%v load fails, rows:%v err:%v", sheetName, rows, err)
 			continue
 		}
 
@@ -66,6 +102,7 @@ func Load() {
 
 		for rowIdx, row := range rows[1:] {
 			if len(row) == 0 {
+				log.Errorf("sheet:%v rows:%v empty", sheetName, rowIdx+1)
 				continue
 			}
 
@@ -81,19 +118,21 @@ func Load() {
 			for i := 0; i < t.NumField(); i++ {
 				field := t.Field(i)
 				colName := field.Tag.Get("excel")
+
 				if colName == "" || colName == "-" {
 					continue
 				}
 
 				idx, ok := colIndex[colName]
 				if !ok || idx >= len(row) {
+					log.Warningf("sheetName:[%v] row:[%v] colName:[%v] idx:[%v] 未找到[%v]或超过row范围%v", sheetName, rowIdx+1, colName, idx, !ok, row )         
 					continue
 				}
 
 				cellValue := strings.TrimSpace(row[idx])
 
 				switch field.Name {
-				case "PointCode":
+				case "PointPrimaryKey":
 					if cellValue == "" {
 						errorMsgs = append(errorMsgs, "点位编号为空")
 						continue
@@ -140,16 +179,5 @@ func Load() {
 		}
 	}
 
-	// 最终结果
-	fmt.Printf("\n成功解析 %d 条有效点位\n\n", len(allPoints))
-	for i, p := range allPoints {
-		fmt.Printf("[%4d] %s | 编号=%d | 频率=%v | 存储=%s 推送=%s\n",
-			i+1,
-			p.PointName,
-			p.PointCode,
-			p.Frequency, // 自动打印 500ms、1s 等
-			p.NeedStore,
-			p.NeedPublish,
-		)
-	}
+	return allPoints, nil
 }
