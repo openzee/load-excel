@@ -13,17 +13,17 @@ import (
 )
 
 type Point struct {
-	Seq          string `excel:"序号"`
-	BusinessUnit string `excel:"事业部"`
-	Line         string `excel:"产线"`
-	Area         string `excel:"区域"`
-	Equipment    string `excel:"设备"`
-	SubEquipment string `excel:"分部设备"`
-	PointName    string `excel:"点位名称"`
-	SensorType   string `excel:"传感器类型"`
-	DataType     string `excel:"数据类型"`
-	Precision    string `excel:"精度"`
-	Range        string `excel:"取值范围"`
+	Seq          string   `excel:"序号"`
+	BusinessUnit string   `excel:"事业部"`
+	Line         string   `excel:"产线"`
+	Area         string   `excel:"区域"`
+	Equipment    string   `excel:"设备"`
+	SubEquipment string   `excel:"分部设备"`
+	PointName    string   `excel:"点位名称"`
+	SensorType   string   `excel:"传感器类型"`
+	Type         DataType `excel:"数据类型"`
+	Precision    string   `excel:"精度"`
+	Range        string   `excel:"取值范围"`
 
 	Frequency       time.Duration `excel:"采集频率"` // 自动解析 + 默认补 ms
 	Unit            string        `excel:"数据单位"`
@@ -44,11 +44,12 @@ type Point struct {
 }
 
 func (obj Point) String() string {
-	return fmt.Sprintf("SheetName:%v RowNumber:%v 点位编号:%v 数据源地址:%v IO地址:%v", 
+	return fmt.Sprintf("SheetName:%v RowNumber:%v 点位编号:%v 数据源地址:%v 类型:%v IO地址:%v", 
 		obj.SheetName,
 		obj.RowNumber,
 		obj.PointPrimaryKey,
 		obj.DataSourceAddr,
+		obj.Type,
 		obj.IOAddr,
 	)
 }
@@ -164,6 +165,12 @@ func ParseExcel(fname string, onlySheets ...string) ([]*Point, error) {
 				cellValue := strings.TrimSpace(row[idx])
 
 				switch field.Name {
+				case "Type":
+					if cellValue == "" {
+						errorMsgs = append(errorMsgs, "数据类型未指定")
+						continue
+					}
+					v.Field(i).Set(reflect.ValueOf(ParseDataType(cellValue)))
 				case "PointPrimaryKey":
 					if cellValue == "" {
 						errorMsgs = append(errorMsgs, "点位编号为空")
