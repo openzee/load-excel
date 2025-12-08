@@ -43,11 +43,15 @@ type Point struct {
 	RowNumber int    `excel:"-"`
 }
 
-func (obj Point) String() string {
+func (obj *Point) GetPointPrimaryKey() string {
+	return strconv.FormatUint(obj.PointPrimaryKey, 10)
+}
+
+func (obj *Point) String() string {
 	return fmt.Sprintf("SheetName:%v RowNumber:%v 点位编号:%v 数据源地址:%v 类型:%v IO地址:%v", 
 		obj.SheetName,
 		obj.RowNumber,
-		obj.PointPrimaryKey,
+		obj.GetPointPrimaryKey(),
 		obj.DataSourceAddr,
 		obj.Type,
 		obj.IOAddr,
