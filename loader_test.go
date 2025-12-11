@@ -8,7 +8,7 @@ import (
 func Print(allPoints []*Point) {
 
 	for _, p := range allPoints {
-		fmt.Println(*p)
+		fmt.Printf("%s\n", p)
 	}
 }
 
@@ -42,4 +42,18 @@ func TestC(t *testing.T) {
 
 	rst2 := ReassembleWithAddrAndFreq(rst)
 	fmt.Println(rst2)
+}
+
+func TestD(t *testing.T) {
+
+	rst, err := ParseExcel("test/test.xlsx")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	rst2 := ReassembleWithGroupIDAndFreq(rst)
+	for a, b := range rst2 {
+		fmt.Println(a, b)
+	}
 }
